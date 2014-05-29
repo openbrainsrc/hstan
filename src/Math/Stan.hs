@@ -37,10 +37,9 @@ type Pat = (Id, [E]) -- identifier, indicies
 
 class Pretty a where
   pp :: a -> String
-  pp = ppIndent 0
 
-  ppIndent :: Int -> a -> String
-  ppIndent n x = unlines $ map ((replicate n ' ')++) $ lines $ pp x
+ppIndent :: Pretty a => Int -> a -> String
+ppIndent n = unlines . map ((replicate n ' ')++) . lines . pp
 
 instance Pretty E where
   pp (EVar nm) = nm
@@ -85,3 +84,6 @@ ppBounds (Just lo, Just hi) = "<lower="++pp lo++", upper="++pp hi++">"
 
 ppIxs :: [E] -> String
 ppIxs = concatMap (\ix-> "["++pp ix++"]")
+
+compileStan :: Program -> String -> String -> IO ()
+compileStan pgm modelName stanDir  = return ()
