@@ -59,3 +59,9 @@ instance Pretty TBase where
   pp TInt = "int"
   pp TReal = "real"
   pp (TVector dim) = "vector["++pp dim++"]"
+
+ppBounds :: (Maybe E, Maybe E) -> String
+ppBounds (Nothing, Nothing) = ""
+ppBounds (Just lo, Nothing) = "<lower="++pp lo++">"
+ppBounds (Nothing, Just hi) = "<upper="++pp hi++">"
+ppBounds (Just lo, Just hi) = "<lower="++pp lo++", upper="++pp hi++">"
