@@ -13,15 +13,12 @@ data Module = Module
               ,  moduleModel :: Model
               }
 
-
-data Model = Model
-             { localVars :: [(Id,T)]
-             , declarations :: [D]
-             }
+newtype Model = Model [D]
 
 data D = For Id E E [D]
        | Sample Pat E
        | Assign Pat E
+       | LocalVar Id T
 
 data E = EVar Id
        | EApp Id [E]
@@ -48,20 +45,47 @@ class Pretty a where
   ppIndent n x = unlines $ map ((replicate n ' ')++) $ lines $ pp x
 
 instance Pretty E where
-  pp (EVar id) = id
-  pp (EApp id args) = id++"("++intercalate "," (map pp args)++")"
-  pp (EBin id l r) = "("++pp l++id++pp r++")"
+  pp (EVar nm) = nm
+  pp (EApp nm args) = nm++"("++intercalate "," (map pp args)++")"
+  pp (EBin nm l r) = "("++pp l++nm++pp r++")"
 
 instance Pretty Pat where
-  pp (id, ixs) = id++concatMap (\ix-> "["++pp ix++"]") ixs
+  pp (nm, ixs) = nm++ppIxs ixs
 
 instance Pretty TBase where
   pp TInt = "int"
   pp TReal = "real"
   pp (TVector dim) = "vector["++pp dim++"]"
 
+instance Pretty (Id, T) where
+  pp (nm, (T base tbounds dims)) = pp base ++ ppBounds tbounds ++ " "++nm++ppIxs dims++";"
+
+instance Pretty D where
+  pp (Sample p e) = pp p ++ " ~ "++ pp e ++";"
+  pp (Assign p e) = pp p ++ " <- "++ pp e ++";"
+  pp (LocalVar nm t) = pp (nm,t)
+  pp (For nm from to ds) = inBlock ("for (" ++ nm++" in "++pp from++":"++pp to++")") ds 
+
+instance Pretty a => Pretty [a] where 
+  pp ds = unlines $ map pp ds
+
+instance Pretty Model where
+  pp (Model ds) = inBlock "model" ds
+
+instance Pretty Module where
+  pp (Module thedata params model) = unlines $ [
+                                      inBlock "data" thedata,
+                                      inBlock "parameters" params,
+                                      inBlock "model" model ]
+
+inBlock :: Pretty a => String -> a -> String
+inBlock nm conts = nm ++ " {\n"++ppIndent 2 conts++ "\n}"
+
 ppBounds :: (Maybe E, Maybe E) -> String
 ppBounds (Nothing, Nothing) = ""
 ppBounds (Just lo, Nothing) = "<lower="++pp lo++">"
 ppBounds (Nothing, Just hi) = "<upper="++pp hi++">"
 ppBounds (Just lo, Just hi) = "<lower="++pp lo++", upper="++pp hi++">"
+
+ppIxs :: [E] -> String
+ppIxs = concatMap (\ix-> "["++pp ix++"]")
