@@ -6,14 +6,11 @@ import Data.List
 
 type Id = String
 
-
-data Module = Module
-              {  moduleData :: [(Id,T)]
-              ,  moduleParameters :: [(Id,T)]
-              ,  moduleModel :: Model
+data Program = Program
+              {  stanData :: [(Id,T)]
+              ,  stanParameters :: [(Id,T)]
+              ,  stanModel :: [D]
               }
-
-newtype Model = Model [D]
 
 data D = For Id E E [D]
        | Sample Pat E
@@ -23,6 +20,7 @@ data D = For Id E E [D]
 data E = EVar Id
        | EApp Id [E]
        | EBin Id E E
+       | EIx E [E]
 
 
 data T = T { baseT :: TBase
@@ -48,6 +46,7 @@ instance Pretty E where
   pp (EVar nm) = nm
   pp (EApp nm args) = nm++"("++intercalate "," (map pp args)++")"
   pp (EBin nm l r) = "("++pp l++nm++pp r++")"
+  pp (EIx e ixs) = pp e ++ ppIxs ixs
 
 instance Pretty Pat where
   pp (nm, ixs) = nm++ppIxs ixs
@@ -69,11 +68,8 @@ instance Pretty D where
 instance Pretty a => Pretty [a] where 
   pp ds = unlines $ map pp ds
 
-instance Pretty Model where
-  pp (Model ds) = inBlock "model" ds
-
-instance Pretty Module where
-  pp (Module thedata params model) = unlines $ [
+instance Pretty Program where
+  pp (Program thedata params model) = unlines $ [
                                       inBlock "data" thedata,
                                       inBlock "parameters" params,
                                       inBlock "model" model ]
