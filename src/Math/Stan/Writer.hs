@@ -22,6 +22,13 @@ instance IsString (Pat a) where
   fromString nm = Pat (nm,[])
 
 
+instance Num a => Num (Expr a) where
+   (Expr e1) + (Expr e2) = Expr $ EBin "+" e1 e2
+   (Expr e1) - (Expr e2) = Expr $ EBin "-" e1 e2
+   (Expr e1) * (Expr e2) = Expr $ EBin "*" e1 e2
+   fromInteger i = Expr $ EInt $ fromInteger i
+
+
 class Indexable a where
   (!) :: a -> [Expr Int] -> a
 

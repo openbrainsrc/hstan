@@ -15,7 +15,7 @@ type Id = String
 data Program = Program
               {  stanData :: [(Id,T)]
               ,  stanParameters :: [(Id,T)]
-              ,  stanModel :: [D]
+              ,  stanModelDs :: [D]
               }
 
 data D = For Id E E [D]
@@ -27,6 +27,8 @@ data E = EVar Id
        | EApp Id [E]
        | EBin Id E E
        | EIx E [E]
+       | EInt Int
+       | EReal Double
 
 
 data T = T { baseT :: TBase
@@ -53,6 +55,8 @@ instance Pretty E where
   pp (EApp nm args) = nm++"("++intercalate "," (map pp args)++")"
   pp (EBin nm l r) = "("++pp l++nm++pp r++")"
   pp (EIx e ixs) = pp e ++ ppIxs ixs
+  pp (EInt i) = show i
+  pp (EReal x) = show x
 
 instance Pretty P where
   pp (nm, ixs) = nm++ppIxs ixs

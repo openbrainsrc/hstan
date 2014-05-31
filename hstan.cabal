@@ -19,3 +19,11 @@ library
                      , directory
                      , random
                      , mtl
+
+
+Executable test-hstan
+   Main-Is:           test.hs
+   ghc-options:       -O2 
+
+   Build-depends:     base                    >= 4.6 && < 5
+                    , hstan
