@@ -1,8 +1,14 @@
+{- |
+Low-level untyped abstract syntax tree and pretty printer for Stan programs
+
+-}
+
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
-module Math.Stan where
+module Math.Stan.AST where
 
 import Data.List
+import Data.String
 
 type Id = String
 
@@ -13,8 +19,8 @@ data Program = Program
               }
 
 data D = For Id E E [D]
-       | Sample Pat E
-       | Assign Pat E
+       | Stoch P E
+       | Det P E
        | LocalVar Id T
 
 data E = EVar Id
@@ -33,7 +39,8 @@ data TBase = TInt
            | TVector E
 
 
-type Pat = (Id, [E]) -- identifier, indicies
+type P = (Id, [E]) -- pattern; identifier, indicies
+
 
 class Pretty a where
   pp :: a -> String
@@ -47,7 +54,7 @@ instance Pretty E where
   pp (EBin nm l r) = "("++pp l++nm++pp r++")"
   pp (EIx e ixs) = pp e ++ ppIxs ixs
 
-instance Pretty Pat where
+instance Pretty P where
   pp (nm, ixs) = nm++ppIxs ixs
 
 instance Pretty TBase where
@@ -59,8 +66,8 @@ instance Pretty (Id, T) where
   pp (nm, (T base tbounds dims)) = pp base ++ ppBounds tbounds ++ " "++nm++ppIxs dims++";"
 
 instance Pretty D where
-  pp (Sample p e) = pp p ++ " ~ "++ pp e ++";"
-  pp (Assign p e) = pp p ++ " <- "++ pp e ++";"
+  pp (Stoch p e) = pp p ++ " ~ "++ pp e ++";"
+  pp (Det p e) = pp p ++ " <- "++ pp e ++";"
   pp (LocalVar nm t) = pp (nm,t)
   pp (For nm from to ds) = inBlock ("for (" ++ nm++" in "++pp from++":"++pp to++")") ds 
 
