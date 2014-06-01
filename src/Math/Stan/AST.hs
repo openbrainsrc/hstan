@@ -98,3 +98,13 @@ ppIxs = concatMap (\ix-> "["++pp ix++"]")
 
 compileStan :: Program -> String -> String -> IO ()
 compileStan pgm modelName stanDir  = return ()
+
+data Value = VInt Int
+           | VReal Double
+           | VArray [Value]
+
+instance Num Value where
+  fromInteger = VInt . fromInteger
+
+instance Fractional Value where
+  fromRational = VReal . fromRational

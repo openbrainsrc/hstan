@@ -30,8 +30,10 @@ instance Num a => Num (Expr a) where
    (Expr e1) + (Expr e2) = Expr $ EBin "+" e1 e2
    (Expr e1) - (Expr e2) = Expr $ EBin "-" e1 e2
    (Expr e1) * (Expr e2) = Expr $ EBin "*" e1 e2
-   fromInteger i = Expr $ EInt $ fromInteger i
+   fromInteger  = Expr . EInt . fromInteger 
 
+instance Fractional a => Fractional (Expr a) where
+   fromRational = Expr . EReal . fromRational
 
 class Indexable a b | a -> b, b -> a where
   (!) :: a -> Expr Int -> b
@@ -73,10 +75,8 @@ for (Expr lo) (Expr hi) body = do
   tell [For "i" lo hi ds]
   return ()
   
-data Value = Value
-
-estimate :: Stan a -> [(String, Value)] -> String
-estimate model vs = ""
+estimate :: Stan a -> [(Id, T)] -> Program
+estimate model vs = Program vs [] $ stanModel model
 
 pToExpr :: P -> Expr a
 pToExpr (nm,[]) = Expr $ EVar nm
