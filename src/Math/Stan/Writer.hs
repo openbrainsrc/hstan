@@ -3,7 +3,7 @@ Monadic writer for Stan programs
 
 -}
 
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, FunctionalDependencies, OverloadedStrings #-}
 
 module Math.Stan.Writer where
 
@@ -22,6 +22,10 @@ instance IsString (Pat a) where
   fromString nm = Pat (nm,[])
 
 
+instance IsString (Expr a) where
+  fromString nm = Expr $ EVar nm
+
+
 instance Num a => Num (Expr a) where
    (Expr e1) + (Expr e2) = Expr $ EBin "+" e1 e2
    (Expr e1) - (Expr e2) = Expr $ EBin "-" e1 e2
@@ -29,14 +33,14 @@ instance Num a => Num (Expr a) where
    fromInteger i = Expr $ EInt $ fromInteger i
 
 
-class Indexable a where
-  (!) :: a -> [Expr Int] -> a
+class Indexable a b | a -> b, b -> a where
+  (!) :: a -> Expr Int -> b
 
-instance Indexable (Pat a) where 
-   (Pat (nm, ixs)) ! moreIxs = Pat (nm,ixs++map unExpr moreIxs)
+instance Indexable (Pat [a]) (Pat a) where 
+   (Pat (nm, ixs)) ! moreIx = Pat (nm,ixs++[unExpr moreIx])
 
-instance Indexable (Expr a) where 
-   (Expr e) ! ixs = Expr $ EIx e $ map unExpr ixs
+instance Indexable (Expr [a]) (Expr a) where 
+   (Expr e) ! ix = Expr $ EIx e [unExpr ix]
 
 type Stan = Writer [D]
 
@@ -45,11 +49,11 @@ stanModel = execWriter
 
 
 
-normal :: Expr Double -> Expr Double -> Prob Double
-normal (Expr m) (Expr sd) = Prob $ EApp "normal" [m, sd]
+normal :: (Expr Double, Expr Double) -> Prob Double
+normal (Expr m, Expr sd) = Prob $ EApp "normal" [m, sd]
 
-gamma :: Expr Double -> Expr Double -> Prob Double
-gamma (Expr a) (Expr b) = Prob $ EApp "gamma" [a, b]
+gamma :: (Expr Double, Expr Double) -> Prob Double
+gamma (Expr a, Expr b) = Prob $ EApp "gamma" [a, b]
 
 
 stoch :: Pat a -> Prob a -> Stan (Expr a)
@@ -62,6 +66,17 @@ det (Pat p) (Expr e) = do
   tell [Det p e]
   return $ pToExpr p 
 
+
+for :: Expr Int -> Expr Int -> (Expr Int -> Stan a) -> Stan ()
+for (Expr lo) (Expr hi) body = do
+  let ds = execWriter (body "i")
+  tell [For "i" lo hi ds]
+  return ()
+  
+data Value = Value
+
+estimate :: Stan a -> [(String, Value)] -> String
+estimate model vs = ""
 
 pToExpr :: P -> Expr a
 pToExpr (nm,[]) = Expr $ EVar nm
