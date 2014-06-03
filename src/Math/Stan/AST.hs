@@ -20,7 +20,7 @@ data Program = Program
 
 data D = For Id E E [D]
        | Stoch P E
-       | Det P E
+       | Det E E
        | LocalVar Id T
 
 data E = EVar Id
