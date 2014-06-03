@@ -3,7 +3,7 @@ Monadic writer for Stan programs
 
 -}
 
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, FunctionalDependencies, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, FunctionalDependencies, OverloadedStrings, UndecidableInstances #-}
 
 module Math.Stan.Writer where
 
@@ -29,6 +29,8 @@ newtype Prob a = Prob E
 newtype Pat a = Pat P
 
 newtype TyT a = TyT T --typed type
+
+newtype Vector = Vector [Double] 
 
 instance IsString (Pat a) where
   fromString nm = Pat (nm,[])
@@ -57,6 +59,9 @@ instance Indexable (Pat [a]) (Pat a) where
 instance Indexable (Expr [a]) (Expr a) where 
    (Expr e) ! ix = Expr $ EIx e [unExpr ix]
 
+{-instance Indexable (Expr Vector) (Expr Double) where 
+   (Expr e) ! ix = Expr $ EIx e [unExpr ix] -}
+
 instance Indexable (TyT a) (TyT [a]) where 
    (TyT (T base bnds dims)) ! (Expr dime) = TyT $ T base bnds $ dims++[dime]
 
@@ -66,7 +71,7 @@ int = TyT $ T TInt (Nothing, Nothing) []
 real :: TyT Double
 real = TyT $ T TReal (Nothing, Nothing) []
 
-vec :: Expr Int -> TyT [a]
+vec :: Expr Int -> TyT Vector
 vec (Expr n) = TyT $ T (TVector n) (Nothing, Nothing) []
 
 (.:) :: Id -> TyT a -> (Id,T)
@@ -75,7 +80,7 @@ ident .: (TyT t)  = (ident,t)
 
 local :: TyT a -> Stan (Expr a)
 local (TyT t) = do
-  ident <- fresh
+  ident <- fresh "v"
   tell [LocalVar ident t]
   return $ Expr $ EVar ident
 
@@ -92,25 +97,25 @@ data StanState = StanState { decls :: [D],
 tell :: [D] -> Stan ()
 tell ds = modify $ \s -> s { decls = decls s ++ ds }
 
-fresh :: Stan Id
-fresh = do
+fresh :: Id -> Stan Id
+fresh base = do
   ix <- fmap supply get
   modify $ \s -> s { supply = ix+1 }
-  return $ "i"++show ix
+  return $ base++show ix
 
 type Stan = State StanState
 
 stanModel :: Stan a -> [D]
 stanModel mx= decls $ execState mx (StanState [] 0) 
 
-localDs :: Stan a -> Stan [D]
+localDs :: Stan a -> Stan ([D], a)
 localDs mx = do
   originalDs <- fmap decls get
   modify $ \s -> s { decls = [] }
-  _ <- mx
+  x <- mx
   newds <- fmap decls get
   modify $ \s -> s { decls = originalDs }
-  return newds
+  return (newds, x)
 
 
 
@@ -118,6 +123,9 @@ localDs mx = do
 
 normal :: (Expr Double, Expr Double) -> Prob Double
 normal (Expr m, Expr sd) = Prob $ EApp "normal" [m, sd]
+
+uniform :: (Expr Double, Expr Double) -> Prob Double
+uniform (Expr lo, Expr hi) = Prob $ EApp "uniform" [lo, hi]
 
 gamma :: (Expr Double, Expr Double) -> Prob Double
 gamma (Expr a, Expr b) = Prob $ EApp "gamma" [a, b]
@@ -134,18 +142,37 @@ stoch (Pat p) (Prob dist) = do
   return ()
 
 
-for :: Expr Int -> Expr Int -> (Expr Int -> Stan a) -> Stan ()
+for :: Wrappable a b => Expr Int -> Expr Int -> (Expr Int -> Stan a) -> Stan b
 for (Expr lo) (Expr hi) body = do
-  i <- fresh
-  ds <- localDs $ body $ Expr (EVar i)
+  i <- fresh "i"
+  (ds,x) <- localDs $ body $ Expr (EVar i)
   tell [For i lo hi ds]
-  return ()
+  return $ wrap x
   
-estimate :: Stan a -> [(Id, T)] -> Program
-estimate model vs = Program vs [] $ stanModel model
-
 pToExpr :: P -> Expr a
 pToExpr (nm,[]) = Expr $ EVar nm
 pToExpr (nm,ixs) = Expr $ EIx (EVar nm) ixs 
 
+stan :: Stan a -> Program
+stan model = Program [] [] $ stanModel model
 
+class Wrappable a b | a -> b  where
+  wrap :: a -> b
+
+instance Wrappable (Expr a) (Expr [a]) where
+  wrap (Expr e) = (Expr e)
+
+instance (Wrappable a b, Wrappable c d) => Wrappable (a,c) (b,d) where
+  wrap (x,y) = (wrap x, wrap y)
+  
+data ProgT a = ProgT { modelT :: Stan a,
+                       parametersT :: [(Id, T)] }
+
+data StanExec a = StanExec { execFilePath :: String,
+                             execParams :: [(Id, T)] }
+
+compile :: ProgT a -> IO (StanExec a)
+compile = undefined
+
+estimate :: StanExec a -> IO [(Id, [Value])]
+estimate = undefined

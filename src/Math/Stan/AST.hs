@@ -13,8 +13,8 @@ import Data.String
 type Id = String
 
 data Program = Program
-              {  stanData :: [(Id,T)]
-              ,  stanParameters :: [(Id,T)]
+              {  observations :: [(Id,T)]
+              ,  parameters :: [(Id,T)]
               ,  stanModelDs :: [D]
               }
 

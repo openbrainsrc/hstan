@@ -3,17 +3,23 @@
 import Math.Stan.Writer
 import Math.Stan.AST 
 
+
+mymodel :: Stan (Expr [Double], Expr [Double])
 mymodel = do
-   y <- local $ real!100
+--   y <- local $ real!100
 
    m  <- stoch "m"  $ normal (0, 1)
    sd <- stoch "sd" $ gamma (1, 1)
 
    for 1 100 $ \i -> do
 
-     y!i .= m + sd
+--     y!i .= m + sd
+     x <- stoch ("x"!i) $ uniform (0, 1)
+     y <- stoch ("y"!i) $ normal (m, sd)
 
-     stoch ("x"!i) $ normal (y!1*5, sd)
+     return (x,y)
 
-main = putStrLn $ pp $ estimate mymodel ["x" .: vec 100, 
-                                         "y" .: int!100] 
+main = putStrLn $ pp $ (stan mymodel) { observations = ["x" .: real!100,
+                                                        "y" .: real!100],
+                                        parameters = ["m"  .: real, 
+                                                      "sd" .: real] }
