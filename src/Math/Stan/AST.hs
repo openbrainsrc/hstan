@@ -22,6 +22,7 @@ data D = For Id E E [D]
        | Stoch P E
        | Det E E
        | LocalVar Id T
+  deriving (Show)
 
 data E = EVar Id
        | EApp Id [E]
@@ -29,18 +30,30 @@ data E = EVar Id
        | EIx E [E]
        | EInt Int
        | EReal Double
+  deriving (Show)
 
 
 data T = T { baseT :: TBase
            , bounds :: (Maybe E, Maybe E)
            , dimensions :: [E]
            }
+  deriving (Show)
 
 data TBase = TInt
            | TReal
            | TVector E
+  deriving (Show)
 
+fromBase :: TBase -> T
+fromBase tb = T tb (Nothing, Nothing) []
 
+reduceDims :: T -> T
+reduceDims (T (TVector vdims) bnds []) = T TReal bnds []
+reduceDims (T base bnds []) = T base bnds []
+reduceDims (T base bnds dims) = T base bnds (init dims)
+
+addDim :: E -> T -> T
+addDim e (T base bnds dims) = T base bnds (dims++[e])
 type P = (Id, [E]) -- pattern; identifier, indicies
 
 
@@ -73,9 +86,9 @@ instance Pretty D where
   pp (Stoch p e) = pp p ++ " ~ "++ pp e ++";"
   pp (Det p e) = pp p ++ " <- "++ pp e ++";"
   pp (LocalVar nm t) = pp (nm,t)
-  pp (For nm from to ds) = inBlock ("for (" ++ nm++" in "++pp from++":"++pp to++")") ds 
+  pp (For nm from to ds) = inBlock ("for (" ++ nm++" in "++pp from++":"++pp to++")") ds
 
-instance Pretty a => Pretty [a] where 
+instance Pretty a => Pretty [a] where
   pp ds = unlines $ map pp ds
 
 instance Pretty Program where

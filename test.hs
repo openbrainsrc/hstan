@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Math.Stan.Writer
-import Math.Stan.AST 
+import Math.Stan.AST
 
 
 mymodel :: Stan (Expr [Double], Expr [Double])
@@ -19,7 +19,7 @@ mymodel = do
 
      return (x,y)
 
-main = putStrLn $ pp $ (stan mymodel) { observations = ["x" .: real!100,
-                                                        "y" .: real!100],
-                                        parameters = ["m"  .: real, 
-                                                      "sd" .: real] }
+main = do compiledModel <- compile mymodel ["m"  .: real,
+                                            "sd" .: real]
+          pars <- estimate compiledModel ([1.2,2.3], [3.4, 4.5])
+          return ()
