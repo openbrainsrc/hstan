@@ -12,6 +12,7 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:   Math.Stan.AST
+                   , Math.Stan.TAST
                    , Math.Stan.Writer
   hs-source-dirs:      src
   ghc-options:         -Wall

@@ -2,6 +2,7 @@
 
 import Math.Stan.Writer
 import Math.Stan.AST
+import Math.Stan.TAST
 
 
 mymodel :: Stan (Expr [Double], Expr [Double])
