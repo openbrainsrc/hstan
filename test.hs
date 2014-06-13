@@ -5,6 +5,9 @@ import Math.Stan.AST
 import Math.Stan.TAST
 
 
+data Params = Params { m :: Double, sd :: Double }
+
+
 mymodel :: Stan (Expr [Double], Expr [Double])
 mymodel = do
 --   y <- local $ real!100
@@ -16,7 +19,9 @@ mymodel = do
 
 --     y!i .= m + sd
      x <- stoch ("x"!i) $ uniform (0, 1)
-     y <- stoch ("y"!i) $ normal (m, sd)
+     y <- stoch ("y"!i) $ normal (m*x, sd)
+     
+
 
      return (x,y)
 

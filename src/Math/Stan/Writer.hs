@@ -120,25 +120,34 @@ instance Dump1 a => Eval (Expr a) a where
   collect (Expr t (EVar ident)) = [(ident, t)]
 
   dump (Expr t (EIx e _)) x = dump (Expr t e) x
-  dump (Expr t (EVar ident)) x = ident++"<-"++dump1 x++"\n"
+  dump (Expr t (EVar ident)) x = ident++"<-"++(dumpAll $ dump1 x)++"\n"
 
 instance (Eval a b, Eval c d) => Eval (a,c) (b,d) where
   collect (e1, e2) = collect e1 ++ collect e2
 
   dump (e1, e2) (x1,x2)= dump e1 x1 ++ dump e2 x2
 
+
 class Dump1 a where
-  dump1 :: a -> String
+  dump1 :: a -> ([String], [Int])
 
 instance Dump1 Double where
-    dump1 x = show x
+    dump1 x = ([show x], [])
 instance Dump1 Int where
-    dump1 x = show x
+    dump1 x = ([show x], [])
 instance Dump1 Bool where
-    dump1 True = "1"
-    dump1 False = "0"
+    dump1 True = (["1"], [])
+    dump1 False = (["0"], [])
 
 --dump1c xs = concat $ "c(" : intersperse "," (map dump1 xs) ++[")"]
 
 instance Dump1 a => Dump1 [a] where
-    dump1 xs = concat $ "c(" : intersperse "," (map dump1 xs) ++[")"]
+    dump1 xs = let xss = map dump1 xs                    
+               in (concatMap fst xss, length xss:(snd $ head xss) ) 
+
+
+dumpAll :: ([String], [Int]) -> String
+dumpAll ([s], []) = s
+dumpAll (ss, [n]) = concat $ "c(" : intersperse "," ss ++[")"]
+dumpAll (ss, ns) = concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c("]
+                             ++intersperse "," (map show ns)++[")"]
